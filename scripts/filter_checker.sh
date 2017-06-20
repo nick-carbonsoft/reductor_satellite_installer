@@ -136,6 +136,7 @@ main() {
 	done
 	create_report repeat
 	export FINISHED=1
+	search_non_blocked.sh
 	create_reports > $DATADIR/report
 	send_reports
 	post_hook
