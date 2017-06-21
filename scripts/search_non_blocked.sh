@@ -48,11 +48,11 @@ transfer_to_resolver(){
 }
 
 flush_lists(){
-	ssh root@$RESOLVER_HOST rm -rf /app/reductor/var/lib/reducot/lists/provider/ || return 0
+	ssh root@$RESOLVER_HOST rm -rf /app/reductor/var/lib/reductor/lists/{provider,resolver}/ || return 0
 }
 
 main(){
-	search_skip
+	search_skip || return 0
 	flush_lists
 	transfer_to_resolver
 	ssh root@$RESOLVER_HOST chroot /app/reductor /usr/local/Reductor/bin/append_workaround.sh
