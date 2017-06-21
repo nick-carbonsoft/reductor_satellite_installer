@@ -10,13 +10,14 @@ set -eu
 
 . /opt/reductor_satellite/etc/const
 
-RESOLVER_HOST="192.168.100.15"
+RESOLVER_HOST="10.50.100.222"
 
 
 search_skip(){
 	# Ищем пропуски, если файл не пустой, то обрабатываем содержимое
 	local http="$MAINDIR/var/http/1"
 	local https="$MAINDIR/var/https/1"
+	echo "Выполняем поиск пропусков"
 	for content in http https; do
 		if [ -s "${!content}" ]; then
 			render "$content" "${!content}"
@@ -34,8 +35,10 @@ render(){
 	local type="$1"
 	local path="$2"
 	if [ "$type" == 'http' ]; then
+		echo "Обнаружены пропуски по http"
 		get_domains "$path" > "$TMPDIR/our.domain_autoblacklist"
 	else
+		echo "Обнаружены пропуски по https"
 		get_domains "$path" > "$TMPDIR/our.domain_tcp_fragmented"
 	fi
 }
@@ -52,7 +55,7 @@ main(){
 	search_skip
 	flush_lists
 	transfer_to_resolver
-	ssh root@$RESOLVER_HOST /app/reductor/usr/local/Reductor/bin/append_workaround.sh
+	ssh root@$RESOLVER_HOST chroot /app/reductor /usr/local/Reductor/bin/append_workaround.sh
 }
 
 main
