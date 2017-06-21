@@ -11,7 +11,7 @@ set -eu
 . /opt/reductor_satellite/etc/const
 
 RESOLVER_HOST="10.50.100.222"
-
+IS_SKIPPED=0
 
 search_skip(){
 	# Ищем пропуски, если файл не пустой, то обрабатываем содержимое
@@ -20,7 +20,8 @@ search_skip(){
 	echo "Выполняем поиск пропусков"
 	for content in http https; do
 		if [ -s "${!content}" ]; then
-			render "$content" "${!content}"
+			IS_SKIPPED=1
+			render "$content" "${!content}" || continue
 		fi
 	done
 }
@@ -52,7 +53,11 @@ flush_lists(){
 }
 
 main(){
-	search_skip || return 0
+	search_skip
+	if [ "$IS_SKIPPED" -ne '1' ]; then
+		echo "Пропусков не обнаружено"
+		return 0
+	fi
 	flush_lists
 	transfer_to_resolver
 	ssh root@$RESOLVER_HOST chroot /app/reductor /usr/local/Reductor/bin/append_workaround.sh
