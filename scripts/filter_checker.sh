@@ -134,12 +134,12 @@ main() {
 	for test in "${global_params[@]}"; do
 		$test
 	done
+	$BINDIR/search_non_blocked.sh
 	create_report repeat
 	export FINISHED=1
 	create_reports > $DATADIR/report
 	send_reports
 	post_hook
-	$BINDIR/search_non_blocked.sh
 }
 
 use_hook
