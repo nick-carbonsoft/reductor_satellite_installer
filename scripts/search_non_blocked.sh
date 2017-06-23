@@ -34,7 +34,7 @@ get_domains(){
 render(){
 	local path="$1"
 	echo "Обнаружены пропуски по https"
-	get_domains "$path" > "$TMPDIR/our.domain_tcp_fragmented"
+	get_domains "$path" > "$TMPDIR/our.domain_resolver_blacklist"
 }
 
 transfer_to_resolver(){
