@@ -10,46 +10,39 @@ set -eu
 
 . /opt/reductor_satellite/etc/const
 
-RESOLVER_HOST="10.50.100.222"
+REDUCTOR_SNI="10.50.100.122"
 IS_SKIPPED=0
 
 search_skip(){
 	# Ищем пропуски, если файл не пустой, то обрабатываем содержимое
-	local http="$MAINDIR/var/http/1"
 	local https="$MAINDIR/var/https/1"
 	echo "Выполняем поиск пропусков"
-	for content in http https; do
-		if [ -s "${!content}" ]; then
+	if [ -s "$https" ]; then
 			IS_SKIPPED=1
-			render "$content" "${!content}" || continue
-		fi
-	done
+			render "$https"
+	else
+			return 0
+	fi
 }
 
 get_domains(){
 	# url->domain
 	local file="$1"
-	grep -oE "http[^ ]*|www[^ ]*" "$file" | cut -d '/' -f3
+	grep -oE "https[^ ]*|www[^ ]*" "$file" | cut -d '/' -f3
 }
 
 render(){
-	local type="$1"
-	local path="$2"
-	if [ "$type" == 'http' ]; then
-		echo "Обнаружены пропуски по http"
-		get_domains "$path" > "$TMPDIR/our.domain_autoblacklist"
-	else
-		echo "Обнаружены пропуски по https"
-		get_domains "$path" > "$TMPDIR/our.domain_tcp_fragmented"
-	fi
+	local path="$1"
+	echo "Обнаружены пропуски по https"
+	get_domains "$path" > "$TMPDIR/our.domain_tcp_fragmented"
 }
 
 transfer_to_resolver(){
-	find "$TMPDIR" -name "our*" -exec scp {} root@$RESOLVER_HOST:/app/reductor/var/lib/reductor/lists/provider/ \;
+	find "$TMPDIR" -name "our*" -exec scp {} root@$REDUCTOR_SNI:/app/reductor/var/lib/reductor/lists/provider/ \;
 }
 
 flush_lists(){
-	ssh root@$RESOLVER_HOST rm -rf /app/reductor/var/lib/reductor/lists/{provider,resolver}/ || return 0
+	ssh root@$REDUCTOR_SNI rm -f /app/reductor/var/lib/reductor/lists/{provider,resolver}/* || return 0
 }
 
 main(){
@@ -60,7 +53,7 @@ main(){
 	fi
 	flush_lists
 	transfer_to_resolver
-	ssh root@$RESOLVER_HOST chroot /app/reductor /usr/local/Reductor/bin/append_workaround.sh
+	ssh root@$REDUCTOR_SNI chroot /app/reductor /usr/local/Reductor/bin/append_workaround.sh
 }
 
 main
