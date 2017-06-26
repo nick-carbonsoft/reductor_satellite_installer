@@ -13,28 +13,41 @@ set -eu
 REDUCTOR_SNI="10.50.100.122"
 IS_SKIPPED=0
 
-search_skip(){
-	# Ищем пропуски, если файл не пустой, то обрабатываем содержимое
-	local https="$MAINDIR/var/https/1"
-	echo "Выполняем поиск пропусков"
-	if [ -s "$https" ]; then
-			IS_SKIPPED=1
-			render "$https"
-	else
-			return 0
-	fi
+get_lists(){
+	find $MAINDIR/var/{http,https} -type f -name 1
 }
 
-get_domains(){
+search_skip(){
+	# Ищем пропуски, если файл не пустой, то обрабатываем содержимое
+	local lists
+	lists="$(get_lists)"
+	echo "Выполняем поиск пропусков"
+	for list in $lists; do
+		if [ -s "$list" ]; then
+			IS_SKIPPED=1
+			render "$list"
+		fi
+	done
+}
+
+get_domains() {
 	# url->domain
 	local file="$1"
-	grep -oE "https[^ ]*|www[^ ]*" "$file" | cut -d '/' -f3
+	grep -oE "http[^ ]*|www[^ ]*" "$file" | cut -d '/' -f3
 }
 
 render(){
 	local path="$1"
-	echo "Обнаружены пропуски по https"
-	get_domains "$path" > "$TMPDIR/our.domain_resolver_blacklist"
+	local proto
+	proto="${path#*var/}"
+	proto=${proto%/1}
+	if [ "$proto" == "http" ]; then
+		echo "Обнаружены пропуски в http"
+		get_domains "$path" > "$TMPDIR/our.domain_workaround_http"
+	else
+		echo "Обнаружены пропуски в https"
+		get_domains "$path" > "$TMPDIR/our.domain_resolver_blacklist"
+	fi
 }
 
 transfer_to_resolver(){
@@ -53,7 +66,7 @@ main(){
 	fi
 	flush_lists
 	transfer_to_resolver
-	ssh root@$REDUCTOR_SNI chroot /app/reductor /usr/local/Reductor/bin/append_workaround.sh
+	ssh root@$REDUCTOR_SNI chroot /app/reductor /usr/local/Reductor/bin/append_blacklist.sh
 }
 
 main
